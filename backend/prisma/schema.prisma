@@ -7,8 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Status {
+  pending
+  ongoing
+  completed
+}
+
 model User {
-  id       Int    @id @default(autoincrement())
-  username String @unique
+  id       Int     @id @default(autoincrement())
+  username String  @unique
   password String
+  matches  Match[] @relation("matches")
+}
+
+model Card {
+  id      Int     @id @default(autoincrement())
+  value   String
+  matched Boolean @default(false)
+  matchId Int
+  Match   Match   @relation("matchMap", fields: [matchId], references: [id])
+}
+
+model Match {
+  id       Int    @id @default(autoincrement())
+  players  User[] @relation("matches")
+  winnerId Int?
+  map      Card[] @relation("matchMap") // 5x6 grid
+  scores   Int[]
+  status   Status @default(pending)
 }
