@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { signup, login } from "../controllers/authController";
+import authenticate from "../middleware/authenticate";
+import { User } from "@prisma/client";
 
 const router = Router();
 
@@ -31,6 +33,14 @@ router.post("/login", async (req: any, res: any) => {
   }
 
   await login(req, res);
+});
+
+router.get("/current", authenticate, (req: any, res: any) => {
+  const user = req.user as User;
+  res.status(200).json({
+    id: user.id,
+    username: user.username,
+  });
 });
 
 export default router;

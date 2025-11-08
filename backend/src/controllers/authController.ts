@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import prisma from "../prisma/client";
+import generateToken from "../utils/generateToken";
 
 export const signup = async (req: any, res: any) => {
   const { username, password } = req.body as {
@@ -42,7 +43,13 @@ export const login = async (req: any, res: any) => {
     if (!passwordsMatch) {
       return res.status(400).json({ message: "Invalid username or password" });
     }
-    // TODO: Implement tokens, probably with JWT inside of a cookie (yummy)
+    const token = generateToken(user.id);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: "true",
+      sameSite: "strict",
+      expires: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+    });
     return res.status(200).json({ message: "Login successful" });
   } catch (error) {
     console.error("Error logging in user:", error);
