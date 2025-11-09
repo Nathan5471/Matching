@@ -3,6 +3,7 @@ import { parse } from "cookie";
 import authenticate from "../utils/authenticate";
 import { User } from "@prisma/client";
 import {
+  getActivePlayerMatches,
   joinMatch,
   leaveMatch,
   startMatch,
@@ -33,35 +34,56 @@ const matchSocket = (io: Server) => {
     console.log(`User connected: ${user.username}`);
 
     socket.on("joinMatch", async (matchId: number) => {
-      const match = await joinMatch(user, matchId);
-      socket.join(`match_${match.id}`);
-      io.to(`match_${match.id}`).emit("playerJoined", { match });
-      socket.emit("joinedMatch", { match });
+      try {
+        const match = await joinMatch(user, matchId);
+        socket.join(`match_${match.id}`);
+        io.to(`match_${match.id}`).emit("playerJoined", { match });
+        socket.emit("joinedMatch", { match });
+      } catch (error) {
+        socket.emit("error", { message: (error as Error).message });
+      }
     });
 
     socket.on("leaveMatch", async (matchId: number) => {
-      const match = await leaveMatch(user, matchId);
-      socket.leave(`match_${matchId}`);
-      io.to(`match_${matchId}`).emit("playerLeft", { match });
-      socket.emit("leftMatch");
+      try {
+        const match = await leaveMatch(user, matchId);
+        socket.leave(`match_${matchId}`);
+        io.to(`match_${matchId}`).emit("playerLeft", { match });
+        socket.emit("leftMatch");
+      } catch (error) {
+        socket.emit("error", { message: (error as Error).message });
+      }
     });
 
     socket.on("startMatch", async (matchId: number) => {
-      const match = await startMatch(user, matchId);
-      io.to(`match_${match.id}`).emit("matchStarted", { match });
+      try {
+        const match = await startMatch(user, matchId);
+        io.to(`match_${match.id}`).emit("matchStarted", { match });
+      } catch (error) {
+        socket.emit("error", { message: (error as Error).message });
+      }
     });
 
     socket.on(
       "flipCard",
       async (data: { matchId: number; cardIndex: number }) => {
-        const { matchId, cardIndex } = data;
-        const match = await flipCard(user, matchId, cardIndex);
-        io.to(`match_${match.id}`).emit("cardFlipped", { match });
+        try {
+          const { matchId, cardIndex } = data;
+          const match = await flipCard(user, matchId, cardIndex);
+          io.to(`match_${match.id}`).emit("cardFlipped", { match });
+        } catch (error) {
+          socket.emit("error", { message: (error as Error).message });
+        }
       }
     );
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(`User disconnected: ${user.username}`);
+      const matches = await getActivePlayerMatches(user);
+      for (const match of matches) {
+        await leaveMatch(user, match.id);
+        io.to(`match_${match.id}`).emit("playerLeft", { match });
+      }
     });
   });
 };

@@ -24,11 +24,7 @@ export const createMatch = async (req: any, res: any) => {
         .json({ message: "User already has an ongoing or pending match" });
     }
     const newMatch = await prisma.match.create({
-      data: {
-        players: {
-          connect: { id: user.id },
-        },
-      },
+      data: {},
     });
     return res
       .status(201)
@@ -63,6 +59,28 @@ export const getAllMatches = async (req: any, res: any) => {
   } catch (error) {
     console.error("Error fetching matches:", error);
     return res.status(500).json({ message: "Failed to fetch matches" });
+  }
+};
+
+export const getActivePlayerMatches = async (user: User) => {
+  // To be used internally, not sent to user
+  try {
+    const matches = await prisma.match.findMany({
+      where: {
+        players: {
+          some: {
+            id: user.id,
+          },
+        },
+        status: {
+          not: "completed",
+        },
+      },
+    });
+    return matches;
+  } catch (error) {
+    console.error("Error fetching active player matches:", error);
+    throw new Error("Failed to fetch active player matches");
   }
 };
 
