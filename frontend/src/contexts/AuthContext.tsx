@@ -22,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const getUser = async () => {
     try {
       const user = await getCurrentUser();
-      setUser(user.user);
+      setUser(user);
     } catch (error) {
       console.error("Failed to fetch current user:", error);
       setUser(null);

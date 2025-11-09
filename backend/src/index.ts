@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import authRouter from "./routes/authRouter";
 import matchRouter from "./routes/matchRouter";
 import matchSocket from "./socket/matchSocket";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 dotenv.config();
 
@@ -24,6 +25,16 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/match", matchRouter);
 matchSocket(io);
+
+// Frontend
+app.use(
+  "/",
+  createProxyMiddleware({
+    target: "http://localhost:5173",
+    changeOrigin: true,
+    ws: true,
+  })
+);
 
 server.listen(3000, () => {
   console.log("Server is running on port 3000");
