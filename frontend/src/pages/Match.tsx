@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import socket from "../socket";
 
 export default function Match() {
   const { matchId } = useParams<{ matchId: string }>();
   interface Match {
     id: number;
-    players: { id: number; name: string }[];
+    players: { id: number; username: string }[];
     winnerId: number;
     status: "pending" | "ongoing" | "completed";
     map: {
@@ -22,11 +22,12 @@ export default function Match() {
   }
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!matchId) return;
 
-    socket.emit("joinMatch", { matchId });
+    socket.emit("joinMatch", Number(matchId));
 
     socket.on("joinedMatch", (data: { match: Match }) => {
       setMatch(data.match);
@@ -41,11 +42,25 @@ export default function Match() {
       setMatch(data.match);
     });
 
+    socket.on("leftMatch", () => {
+      navigate("/");
+    });
+
     socket.on("error", (data: { message: string }) => {
       console.error("Socket error:", data.message);
       setLoading(false);
     });
-  }, [matchId]);
+  }, [matchId, navigate]);
+
+  const handleStartMatch = () => {
+    if (!matchId) return;
+    socket.emit("startMatch", Number(matchId));
+  };
+
+  const handleLeaveMatch = () => {
+    if (!matchId) return;
+    socket.emit("leaveMatch", Number(matchId));
+  };
 
   if (loading) {
     return (
@@ -66,6 +81,44 @@ export default function Match() {
             You are either in a match, this match doesn't exist, or this match
             is already started.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (match.status === "pending") {
+    return (
+      <div className="w-screen h-screen flex flex-col bg-primary-a3 text-primary-a4">
+        <h1 className="text-4xl font-bold text-center p-4">
+          Match #{match.id}
+        </h1>
+        <div className="grid grid-cols-5 grid-rows-3 w-full h-full gap-4 p-4">
+          {Array.from({ length: 15 }, (_, i) => (
+            <div
+              key={i}
+              className="w-full h-full flex justify-center items-center bg-primary-a2 rounded-lg p-2"
+            >
+              {match.players[i] && (
+                <h2 className="text-xl font-semibold">
+                  {match.players[i].username}
+                </h2>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-row p-2 justify-center items-center">
+          <button
+            className="bg-primary-a1 hover:bg-primary-a0 transition-colors text-white font-bold p-2 rounded-lg"
+            onClick={handleStartMatch}
+          >
+            Start Match
+          </button>
+          <button
+            className="bg-primary-a1 hover:bg-primary-a0 transition-colors text-white font-bold p-2 rounded-lg ml-4"
+            onClick={handleLeaveMatch}
+          >
+            Leave Match
+          </button>
         </div>
       </div>
     );

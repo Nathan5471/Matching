@@ -79,10 +79,17 @@ const matchSocket = (io: Server) => {
 
     socket.on("disconnect", async () => {
       console.log(`User disconnected: ${user.username}`);
-      const matches = await getActivePlayerMatches(user);
-      for (const match of matches) {
-        await leaveMatch(user, match.id);
-        io.to(`match_${match.id}`).emit("playerLeft", { match });
+      try {
+        const matches = await getActivePlayerMatches(user);
+        for (const match of matches) {
+          await leaveMatch(user, match.id);
+          io.to(`match_${match.id}`).emit("playerLeft", { match });
+        }
+      } catch (error) {
+        console.error(
+          `Error during disconnect cleanup for ${user.username}:`,
+          error
+        );
       }
     });
   });

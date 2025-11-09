@@ -76,6 +76,7 @@ export const getActivePlayerMatches = async (user: User) => {
           not: "completed",
         },
       },
+      include: { players: true },
     });
     return matches;
   } catch (error) {
@@ -152,6 +153,12 @@ export const leaveMatch = async (user: User, matchId: number) => {
     }
     if (!match.players.find((player) => player.id === user.id)) {
       throw new Error("User is not part of this match");
+    }
+    if (match.players.length <= 1) {
+      await prisma.match.delete({
+        where: { id: matchId },
+      });
+      return null;
     }
     const newMatch = await prisma.match.update({
       where: { id: matchId },

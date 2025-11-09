@@ -49,7 +49,7 @@ model Card {
   value   CardValues
   matched Boolean    @default(false)
   matchId Int
-  Match   Match      @relation("matchMap", fields: [matchId], references: [id])
+  Match   Match      @relation("matchMap", fields: [matchId], references: [id], onDelete: Cascade)
 }
 
 model Match {

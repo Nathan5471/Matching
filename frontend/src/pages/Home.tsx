@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { createMatch, getAllMatches } from "../utils/MatchAPIHandler";
 
 export default function Home() {
@@ -68,12 +68,12 @@ export default function Home() {
                       .map((player) => player.username)
                       .join(", ")}
                   </p>
-                  <Link
-                    to={`/match/${matches[0].id}`}
+                  <a
+                    href={`/match/${matches[0].id}`}
                     className="bg-primary-a1 hover:bg-primary-a0 transition-colors text-white font-bold p-2 rounded-lg"
                   >
                     Join Match
-                  </Link>
+                  </a>
                 </div>
               )
             ) : (
@@ -88,12 +88,12 @@ export default function Home() {
                       .map((player) => player.username)
                       .join(", ")}
                   </p>
-                  <Link
-                    to={`/match/${matches[i].id}`}
+                  <a
+                    href={`/match/${matches[i].id}`}
                     className="bg-primary-a1 hover:bg-primary-a0 transition-colors text-white font-bold p-2 rounded-lg"
                   >
                     Join Match
-                  </Link>
+                  </a>
                 </div>
               )
             )}
