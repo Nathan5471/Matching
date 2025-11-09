@@ -13,6 +13,30 @@ enum Status {
   completed
 }
 
+enum CardValues {
+  shrek
+  fiona
+  donkey
+  puss
+  dragon
+  waffles
+  onions
+  farquaad
+  fairyGodmother
+  princeCharming
+  gingy
+  humanShrek
+  humanFiona
+  horseDonkey
+  pinocchio
+  blindMice
+  bigBadWolf
+  farFarAway
+  fionaCastle
+  swamp
+  duloc
+}
+
 model User {
   id       Int     @id @default(autoincrement())
   username String  @unique
@@ -21,11 +45,11 @@ model User {
 }
 
 model Card {
-  id      Int     @id @default(autoincrement())
-  value   String
-  matched Boolean @default(false)
+  id      Int        @id @default(autoincrement())
+  value   CardValues
+  matched Boolean    @default(false)
   matchId Int
-  Match   Match   @relation("matchMap", fields: [matchId], references: [id])
+  Match   Match      @relation("matchMap", fields: [matchId], references: [id])
 }
 
 model Match {

@@ -1,5 +1,6 @@
 import prisma from "../prisma/client";
 import { User } from "@prisma/client";
+import generateMap from "../utils/generateMap";
 
 export const createMatch = async (req: any, res: any) => {
   const user = req.user as User;
@@ -176,11 +177,14 @@ export const startMatch = async (user: User, matchId: number) => {
     if (match.players.length < 2) {
       throw new Error("Not enough players to start the match");
     }
-    // TODO: Generate a map for the match.
+    const map = generateMap();
     const updatedMatch = await prisma.match.update({
       where: { id: matchId },
       data: {
         status: "ongoing",
+        map: {
+          create: map.map((value) => ({ value })),
+        },
       },
       include: { players: true, map: true },
     });
