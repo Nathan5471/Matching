@@ -24,3 +24,8 @@ export const login = async (username: string, password: string) => {
   const response = await api.post("/login", { username, password });
   return response.data;
 };
+
+export const getCurrentUser = async () => {
+  const response = await api.get("/current");
+  return response.data;
+};
