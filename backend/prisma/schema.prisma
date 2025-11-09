@@ -53,10 +53,13 @@ model Card {
 }
 
 model Match {
-  id       Int    @id @default(autoincrement())
-  players  User[] @relation("matches")
-  winnerId Int?
-  map      Card[] @relation("matchMap") // 5x6 grid
-  scores   Int[]
-  status   Status @default(pending)
+  id          Int    @id @default(autoincrement())
+  players     User[] @relation("matches")
+  winnerId    Int?
+  map         Card[] @relation("matchMap") // 5x6 grid
+  scores      Int[]
+  status      Status @default(pending)
+  currentTurn Int    @default(0)
+  card1Flip   Int?
+  card2Flip   Int?
 }

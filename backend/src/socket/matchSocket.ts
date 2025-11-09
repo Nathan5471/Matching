@@ -6,6 +6,7 @@ import {
   joinMatch,
   leaveMatch,
   startMatch,
+  flipCard,
 } from "../controllers/matchController";
 
 const matchSocket = (io: Server) => {
@@ -47,7 +48,17 @@ const matchSocket = (io: Server) => {
 
     socket.on("startMatch", async (matchId: number) => {
       const match = await startMatch(user, matchId);
+      io.to(`match_${match.id}`).emit("matchStarted", { match });
     });
+
+    socket.on(
+      "flipCard",
+      async (data: { matchId: number; cardIndex: number }) => {
+        const { matchId, cardIndex } = data;
+        const match = await flipCard(user, matchId, cardIndex);
+        io.to(`match_${match.id}`).emit("cardFlipped", { match });
+      }
+    );
 
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${user.username}`);

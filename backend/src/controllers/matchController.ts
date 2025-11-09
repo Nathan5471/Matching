@@ -1,5 +1,5 @@
 import prisma from "../prisma/client";
-import { User } from "@prisma/client";
+import { User, CardValues } from "@prisma/client";
 import generateMap from "../utils/generateMap";
 
 export const createMatch = async (req: any, res: any) => {
@@ -112,6 +112,9 @@ export const joinMatch = async (user: User, matchId: number) => {
       status: newMatch.status,
       map: newMatch.map,
       scores: newMatch.scores,
+      currentTurn: newMatch.currentTurn,
+      card1Flip: newMatch.card1Flip,
+      card2Flip: newMatch.card2Flip,
     };
     return playerFilteredMatch;
   } catch (error) {
@@ -151,6 +154,9 @@ export const leaveMatch = async (user: User, matchId: number) => {
       status: newMatch.status,
       map: newMatch.map,
       scores: newMatch.scores,
+      currentTurn: newMatch.currentTurn,
+      card1Flip: newMatch.card1Flip,
+      card2Flip: newMatch.card2Flip,
     };
     return playerFilteredMatch;
   } catch (error) {
@@ -177,7 +183,7 @@ export const startMatch = async (user: User, matchId: number) => {
     if (match.players.length < 2) {
       throw new Error("Not enough players to start the match");
     }
-    const map = generateMap();
+    const map = generateMap() as CardValues[];
     const updatedMatch = await prisma.match.update({
       where: { id: matchId },
       data: {
@@ -185,6 +191,7 @@ export const startMatch = async (user: User, matchId: number) => {
         map: {
           create: map.map((value) => ({ value })),
         },
+        scores: match.players.map(() => 0),
       },
       include: { players: true, map: true },
     });
@@ -203,5 +210,190 @@ export const startMatch = async (user: User, matchId: number) => {
   } catch (error) {
     console.error("Error starting match:", error);
     throw new Error("Failed to start match");
+  }
+};
+
+export const flipCard = async (
+  user: User,
+  matchId: number,
+  cardIndex: number
+) => {
+  if (cardIndex < 0 || cardIndex > 29) {
+    throw new Error("Invalid card index");
+  }
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: { players: true, map: true },
+    });
+    if (!match) {
+      throw new Error("Match not found");
+    }
+    if (match.status !== "ongoing") {
+      throw new Error("Cannot flip card in a match that is not ongoing");
+    }
+    if (!match.players.some((player) => player.id === user.id)) {
+      throw new Error("User is not part of this match");
+    }
+    if (
+      match.players[match.currentTurn % match.players.length].id !== user.id
+    ) {
+      throw new Error("It's not the user's turn");
+    }
+    if (match.map[cardIndex].matched) {
+      throw new Error("Card is already matched");
+    }
+    if (match.card1Flip === null) {
+      const updatedMatch = await prisma.match.update({
+        where: { id: matchId },
+        data: { card1Flip: cardIndex },
+        include: { players: true, map: true },
+      });
+      const playerFilteredMatch = {
+        id: updatedMatch.id,
+        players: updatedMatch.players.map((player) => ({
+          id: player.id,
+          username: player.username,
+        })),
+        winnerId: updatedMatch.winnerId,
+        status: updatedMatch.status,
+        map: updatedMatch.map,
+        scores: updatedMatch.scores,
+        currentTurn: updatedMatch.currentTurn,
+        card1Flip: updatedMatch.card1Flip,
+        card2Flip: updatedMatch.card2Flip,
+      };
+      return playerFilteredMatch;
+    } else if (match.card2Flip === null) {
+      const updatedMatch = await prisma.match.update({
+        where: { id: matchId },
+        data: { card2Flip: cardIndex },
+        include: { players: true, map: true },
+      });
+      if (
+        updatedMatch.map[match.card1Flip].value ===
+        updatedMatch.map[cardIndex].value
+      ) {
+        const moreUpdatedMatch = await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            map: {
+              updateMany: {
+                where: {
+                  OR: [
+                    { id: updatedMatch.map[match.card1Flip].id },
+                    { id: updatedMatch.map[cardIndex].id },
+                  ],
+                },
+                data: { matched: true },
+              },
+            },
+            scores: [
+              ...updatedMatch.scores.map((score, index) => {
+                if (
+                  index ===
+                  updatedMatch.currentTurn % updatedMatch.players.length
+                ) {
+                  return score + 1;
+                }
+                return score;
+              }),
+            ],
+            card1Flip: null,
+            card2Flip: null,
+          },
+          include: { players: true, map: true },
+        });
+        if (moreUpdatedMatch.map.every((card) => card.matched)) {
+          const wonMatch = await prisma.match.update({
+            where: { id: matchId },
+            data: {
+              status: "completed",
+              winnerId:
+                moreUpdatedMatch.players[
+                  moreUpdatedMatch.scores.indexOf(
+                    Math.max(...moreUpdatedMatch.scores)
+                  )
+                ].id,
+            },
+            include: { players: true, map: true },
+          });
+          const playerFilteredWonMatch = {
+            id: wonMatch.id,
+            players: wonMatch.players.map((player) => ({
+              id: player.id,
+              username: player.username,
+            })),
+            winnerId: wonMatch.winnerId,
+            status: wonMatch.status,
+            map: wonMatch.map,
+            scores: wonMatch.scores,
+            currentTurn: wonMatch.currentTurn,
+            card1Flip: wonMatch.card1Flip,
+            card2Flip: wonMatch.card2Flip,
+          };
+          return playerFilteredWonMatch;
+        }
+        const playerFilteredMatch = {
+          id: moreUpdatedMatch.id,
+          players: moreUpdatedMatch.players.map((player) => ({
+            id: player.id,
+            username: player.username,
+          })),
+          winnerId: moreUpdatedMatch.winnerId,
+          status: moreUpdatedMatch.status,
+          map: moreUpdatedMatch.map,
+          scores: moreUpdatedMatch.scores,
+          currentTurn: moreUpdatedMatch.currentTurn,
+          card1Flip: moreUpdatedMatch.card1Flip,
+          card2Flip: moreUpdatedMatch.card2Flip,
+        };
+        return playerFilteredMatch;
+      }
+    } else {
+      console.log("Both cards are already flipped, something probably broke");
+      const fixedMatch = await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          card1Flip: null,
+          card2Flip: null,
+          currentTurn: match.currentTurn + 1,
+        },
+        include: { players: true, map: true },
+      });
+      const playerFilteredMatch = {
+        id: fixedMatch.id,
+        players: fixedMatch.players.map((player) => ({
+          id: player.id,
+          username: player.username,
+        })),
+        winnerId: fixedMatch.winnerId,
+        status: fixedMatch.status,
+        map: fixedMatch.map,
+        scores: fixedMatch.scores,
+        currentTurn: fixedMatch.currentTurn,
+        card1Flip: fixedMatch.card1Flip,
+        card2Flip: fixedMatch.card2Flip,
+      };
+      return playerFilteredMatch;
+    }
+    const playerFilteredMatch = {
+      id: match.id,
+      players: match.players.map((player) => ({
+        id: player.id,
+        username: player.username,
+      })),
+      winnerId: match.winnerId,
+      status: match.status,
+      map: match.map,
+      scores: match.scores,
+      currentTurn: match.currentTurn,
+      card1Flip: match.card1Flip,
+      card2Flip: match.card2Flip,
+    };
+    return playerFilteredMatch;
+  } catch (error) {
+    console.error("Error flipping card:", error);
+    throw new Error("Failed to flip card");
   }
 };
