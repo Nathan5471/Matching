@@ -4,7 +4,7 @@ import { getCurrentUser } from "../utils/AuthAPIHandler";
 interface AuthContextType {
   user:
     | {
-        id: string;
+        id: number;
         username: string;
       }
     | null

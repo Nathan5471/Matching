@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import socket from "../socket";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Match() {
   const { matchId } = useParams<{ matchId: string }>();
+  const { user } = useAuth();
   interface Match {
     id: number;
     players: { id: number; username: string }[];
@@ -46,6 +48,14 @@ export default function Match() {
       navigate("/");
     });
 
+    socket.on("matchStarted", (data: { match: Match }) => {
+      setMatch(data.match);
+    });
+
+    socket.on("cardFlipped", (data: { match: Match }) => {
+      setMatch(data.match);
+    });
+
     socket.on("error", (data: { message: string }) => {
       console.error("Socket error:", data.message);
       setLoading(false);
@@ -60,6 +70,20 @@ export default function Match() {
   const handleLeaveMatch = () => {
     if (!matchId) return;
     socket.emit("leaveMatch", Number(matchId));
+  };
+
+  const handleClickCard = (cardIndex: number) => {
+    if (!matchId) return;
+    if (!match || match.status !== "ongoing") return;
+    console.log("Match:", match);
+    console.log("Players:", match.players);
+    if (match.players[match.currentTurn % match.players.length].id !== user?.id)
+      return;
+    console.log("Passed turn check");
+    if (match.card1Flip !== null && match.card2Flip !== null) return;
+    if (match.card1Flip === cardIndex || match.card2Flip === cardIndex) return;
+    console.log("Passed all checks");
+    socket.emit("flipCard", { matchId: Number(matchId), cardIndex });
   };
 
   if (loading) {
@@ -119,6 +143,49 @@ export default function Match() {
           >
             Leave Match
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (match.status === "ongoing") {
+    return (
+      <div className="w-screen h-screen flex flex-col bg-primary-a3 text-primary-a4">
+        <div className="flex flex-row justify-between items-center p-1">
+          {match.players.map((player, index) => (
+            <p key={player.id} className="text-lg">
+              {player.username}: {match.scores[index]}
+            </p>
+          ))}
+        </div>
+        <div className="grid grid-cols-5 grid-rows-6 w-full h-full gap-4 p-2">
+          {match.map.map((card, index) => (
+            <div
+              key={card.id}
+              className="w-full h-full flex justify-center items-center bg-primary-a2 rounded-lg p-2"
+            >
+              {card.matched ? (
+                <img
+                  src={`/${card.value}.jpg`}
+                  alt={card.value}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <button
+                  className="w-full h-full bg-transparent"
+                  onClick={() => handleClickCard(index)}
+                >
+                  {(match.card1Flip === index || match.card2Flip === index) && (
+                    <img
+                      src={`/${card.value}.jpg`}
+                      alt={card.value}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     );

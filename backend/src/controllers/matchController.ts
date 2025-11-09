@@ -230,6 +230,9 @@ export const startMatch = async (user: User, matchId: number) => {
       status: updatedMatch.status,
       map: updatedMatch.map,
       scores: updatedMatch.scores,
+      currentTurn: updatedMatch.currentTurn,
+      card1Flip: updatedMatch.card1Flip,
+      card2Flip: updatedMatch.card2Flip,
     };
     return playerFilteredMatch;
   } catch (error) {
