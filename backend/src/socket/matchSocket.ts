@@ -8,6 +8,7 @@ import {
   leaveMatch,
   startMatch,
   flipCard,
+  tickTurn,
 } from "../controllers/matchController";
 
 const matchSocket = (io: Server) => {
@@ -71,6 +72,14 @@ const matchSocket = (io: Server) => {
           const { matchId, cardIndex } = data;
           const match = await flipCard(user, matchId, cardIndex);
           io.to(`match_${match.id}`).emit("cardFlipped", { match });
+          if (match.card2Flip !== null) {
+            setTimeout(async () => {
+              const updatedMatch = await tickTurn(match.id);
+              io.to(`match_${match.id}`).emit("turnTicked", {
+                match: updatedMatch,
+              });
+            }, 1000);
+          }
         } catch (error) {
           socket.emit("error", { message: (error as Error).message });
         }

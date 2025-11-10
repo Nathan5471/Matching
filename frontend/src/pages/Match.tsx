@@ -49,11 +49,18 @@ export default function Match() {
     });
 
     socket.on("matchStarted", (data: { match: Match }) => {
+      console.log("Match started:", data.match);
       setMatch(data.match);
     });
 
     socket.on("cardFlipped", (data: { match: Match }) => {
+      console.log("Card flipped, new match:", data.match);
       setMatch(data.match);
+    });
+
+    socket.on("turnTicked", (data: { match: Match }) => {
+      setMatch(data.match);
+      console.log("Turn ticked, new match:", data);
     });
 
     socket.on("error", (data: { message: string }) => {
@@ -75,14 +82,10 @@ export default function Match() {
   const handleClickCard = (cardIndex: number) => {
     if (!matchId) return;
     if (!match || match.status !== "ongoing") return;
-    console.log("Match:", match);
-    console.log("Players:", match.players);
     if (match.players[match.currentTurn % match.players.length].id !== user?.id)
       return;
-    console.log("Passed turn check");
     if (match.card1Flip !== null && match.card2Flip !== null) return;
     if (match.card1Flip === cardIndex || match.card2Flip === cardIndex) return;
-    console.log("Passed all checks");
     socket.emit("flipCard", { matchId: Number(matchId), cardIndex });
   };
 
@@ -153,12 +156,19 @@ export default function Match() {
       <div className="w-screen h-screen flex flex-col bg-primary-a3 text-primary-a4">
         <div className="flex flex-row justify-between items-center p-1">
           {match.players.map((player, index) => (
-            <p key={player.id} className="text-lg">
+            <p
+              key={player.id}
+              className={`text-xl ${
+                match.currentTurn % match.players.length === index
+                  ? "font-bold underline"
+                  : "font-normal"
+              }`}
+            >
               {player.username}: {match.scores[index]}
             </p>
           ))}
         </div>
-        <div className="grid grid-cols-5 grid-rows-6 w-full h-full gap-4 p-2">
+        <div className="grid grid-cols-5 grid-rows-4 w-full h-full gap-4 p-2">
           {match.map.map((card, index) => (
             <div
               key={card.id}

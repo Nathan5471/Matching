@@ -50,13 +50,14 @@ model Card {
   matched Boolean    @default(false)
   matchId Int
   Match   Match      @relation("matchMap", fields: [matchId], references: [id], onDelete: Cascade)
+  order   Int
 }
 
 model Match {
   id          Int    @id @default(autoincrement())
   players     User[] @relation("matches")
   winnerId    Int?
-  map         Card[] @relation("matchMap") // 5x6 grid
+  map         Card[] @relation("matchMap") // 4x5 grid
   scores      Int[]
   status      Status @default(pending)
   currentTurn Int    @default(0)

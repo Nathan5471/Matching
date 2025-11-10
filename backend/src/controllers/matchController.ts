@@ -129,7 +129,7 @@ export const joinMatch = async (user: User, matchId: number) => {
       })),
       winnerId: newMatch.winnerId,
       status: newMatch.status,
-      map: newMatch.map,
+      map: newMatch.map.sort((a, b) => a.order - b.order),
       scores: newMatch.scores,
       currentTurn: newMatch.currentTurn,
       card1Flip: newMatch.card1Flip,
@@ -177,7 +177,7 @@ export const leaveMatch = async (user: User, matchId: number) => {
       })),
       winnerId: newMatch.winnerId,
       status: newMatch.status,
-      map: newMatch.map,
+      map: newMatch.map.sort((a, b) => a.order - b.order),
       scores: newMatch.scores,
       currentTurn: newMatch.currentTurn,
       card1Flip: newMatch.card1Flip,
@@ -214,7 +214,7 @@ export const startMatch = async (user: User, matchId: number) => {
       data: {
         status: "ongoing",
         map: {
-          create: map.map((value) => ({ value })),
+          create: map.map((value, index) => ({ value, order: index })),
         },
         scores: match.players.map(() => 0),
       },
@@ -228,7 +228,7 @@ export const startMatch = async (user: User, matchId: number) => {
       })),
       winnerId: updatedMatch.winnerId,
       status: updatedMatch.status,
-      map: updatedMatch.map,
+      map: updatedMatch.map.sort((a, b) => a.order - b.order),
       scores: updatedMatch.scores,
       currentTurn: updatedMatch.currentTurn,
       card1Flip: updatedMatch.card1Flip,
@@ -285,7 +285,7 @@ export const flipCard = async (
         })),
         winnerId: updatedMatch.winnerId,
         status: updatedMatch.status,
-        map: updatedMatch.map,
+        map: updatedMatch.map.sort((a, b) => a.order - b.order),
         scores: updatedMatch.scores,
         currentTurn: updatedMatch.currentTurn,
         card1Flip: updatedMatch.card1Flip,
@@ -327,8 +327,6 @@ export const flipCard = async (
                 return score;
               }),
             ],
-            card1Flip: null,
-            card2Flip: null,
           },
           include: { players: true, map: true },
         });
@@ -354,7 +352,7 @@ export const flipCard = async (
             })),
             winnerId: wonMatch.winnerId,
             status: wonMatch.status,
-            map: wonMatch.map,
+            map: wonMatch.map.sort((a, b) => a.order - b.order),
             scores: wonMatch.scores,
             currentTurn: wonMatch.currentTurn,
             card1Flip: wonMatch.card1Flip,
@@ -370,11 +368,27 @@ export const flipCard = async (
           })),
           winnerId: moreUpdatedMatch.winnerId,
           status: moreUpdatedMatch.status,
-          map: moreUpdatedMatch.map,
+          map: moreUpdatedMatch.map.sort((a, b) => a.order - b.order),
           scores: moreUpdatedMatch.scores,
           currentTurn: moreUpdatedMatch.currentTurn,
           card1Flip: moreUpdatedMatch.card1Flip,
           card2Flip: moreUpdatedMatch.card2Flip,
+        };
+        return playerFilteredMatch;
+      } else {
+        const playerFilteredMatch = {
+          id: updatedMatch.id,
+          players: updatedMatch.players.map((player) => ({
+            id: player.id,
+            username: player.username,
+          })),
+          winnerId: updatedMatch.winnerId,
+          status: updatedMatch.status,
+          map: updatedMatch.map.sort((a, b) => a.order - b.order),
+          scores: updatedMatch.scores,
+          currentTurn: updatedMatch.currentTurn,
+          card1Flip: updatedMatch.card1Flip,
+          card2Flip: updatedMatch.card2Flip,
         };
         return playerFilteredMatch;
       }
@@ -397,7 +411,7 @@ export const flipCard = async (
         })),
         winnerId: fixedMatch.winnerId,
         status: fixedMatch.status,
-        map: fixedMatch.map,
+        map: fixedMatch.map.sort((a, b) => a.order - b.order),
         scores: fixedMatch.scores,
         currentTurn: fixedMatch.currentTurn,
         card1Flip: fixedMatch.card1Flip,
@@ -405,23 +419,53 @@ export const flipCard = async (
       };
       return playerFilteredMatch;
     }
-    const playerFilteredMatch = {
-      id: match.id,
-      players: match.players.map((player) => ({
-        id: player.id,
-        username: player.username,
-      })),
-      winnerId: match.winnerId,
-      status: match.status,
-      map: match.map,
-      scores: match.scores,
-      currentTurn: match.currentTurn,
-      card1Flip: match.card1Flip,
-      card2Flip: match.card2Flip,
-    };
-    return playerFilteredMatch;
   } catch (error) {
     console.error("Error flipping card:", error);
     throw new Error("Failed to flip card");
+  }
+};
+
+export const tickTurn = async (matchId: number) => {
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: { players: true, map: true },
+    });
+    if (!match) {
+      throw new Error("Match not found");
+    }
+    if (match.status !== "ongoing") {
+      throw new Error("Cannot tick turn in a match that is not ongoing");
+    }
+    if (match.card1Flip === null || match.card2Flip === null) {
+      throw new Error("Cannot tick turn before both cards are flipped");
+    }
+    const updatedMatch = await prisma.match.update({
+      where: { id: matchId },
+      data: {
+        card1Flip: null,
+        card2Flip: null,
+        currentTurn: match.currentTurn + 1,
+      },
+      include: { players: true, map: true },
+    });
+    const playerFilteredMatch = {
+      id: updatedMatch.id,
+      players: updatedMatch.players.map((player) => ({
+        id: player.id,
+        username: player.username,
+      })),
+      winnerId: updatedMatch.winnerId,
+      status: updatedMatch.status,
+      map: updatedMatch.map.sort((a, b) => a.order - b.order),
+      scores: updatedMatch.scores,
+      currentTurn: updatedMatch.currentTurn,
+      card1Flip: updatedMatch.card1Flip,
+      card2Flip: updatedMatch.card2Flip,
+    };
+    return playerFilteredMatch;
+  } catch (error) {
+    console.error("Error ticking turn:", error);
+    throw new Error("Failed to tick turn");
   }
 };
