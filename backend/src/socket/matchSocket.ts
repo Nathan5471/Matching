@@ -67,10 +67,10 @@ const matchSocket = (io: Server) => {
 
     socket.on(
       "flipCard",
-      async (data: { matchId: number; cardIndex: number }) => {
+      async (data: { matchId: number; cardOrder: number }) => {
         try {
-          const { matchId, cardIndex } = data;
-          const match = await flipCard(user, matchId, cardIndex);
+          const { matchId, cardOrder } = data;
+          const match = await flipCard(user, matchId, cardOrder);
           io.to(`match_${match.id}`).emit("cardFlipped", { match });
           if (match.card2Flip !== null) {
             setTimeout(async () => {

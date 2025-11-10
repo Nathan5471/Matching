@@ -16,6 +16,7 @@ export default function Match() {
       value: string;
       matched: boolean;
       matchId: number;
+      order: number;
     }[];
     scores: number[];
     currentTurn: number;
@@ -79,14 +80,14 @@ export default function Match() {
     socket.emit("leaveMatch", Number(matchId));
   };
 
-  const handleClickCard = (cardIndex: number) => {
+  const handleClickCard = (cardOrder: number) => {
     if (!matchId) return;
     if (!match || match.status !== "ongoing") return;
     if (match.players[match.currentTurn % match.players.length].id !== user?.id)
       return;
     if (match.card1Flip !== null && match.card2Flip !== null) return;
-    if (match.card1Flip === cardIndex || match.card2Flip === cardIndex) return;
-    socket.emit("flipCard", { matchId: Number(matchId), cardIndex });
+    if (match.card1Flip === cardOrder || match.card2Flip === cardOrder) return;
+    socket.emit("flipCard", { matchId: Number(matchId), cardOrder });
   };
 
   if (loading) {
@@ -169,7 +170,7 @@ export default function Match() {
           ))}
         </div>
         <div className="grid grid-cols-5 grid-rows-4 w-full h-full gap-4 p-2">
-          {match.map.map((card, index) => (
+          {match.map.map((card) => (
             <div
               key={card.id}
               className="w-full h-full flex justify-center items-center bg-primary-a2 rounded-lg p-2"
@@ -183,9 +184,10 @@ export default function Match() {
               ) : (
                 <button
                   className="w-full h-full bg-transparent"
-                  onClick={() => handleClickCard(index)}
+                  onClick={() => handleClickCard(card.order)}
                 >
-                  {(match.card1Flip === index || match.card2Flip === index) && (
+                  {(match.card1Flip === card.order ||
+                    match.card2Flip === card.order) && (
                     <img
                       src={`/${card.value}.jpg`}
                       alt={card.value}

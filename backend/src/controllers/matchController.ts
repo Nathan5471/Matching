@@ -244,9 +244,9 @@ export const startMatch = async (user: User, matchId: number) => {
 export const flipCard = async (
   user: User,
   matchId: number,
-  cardIndex: number
+  cardOrder: number
 ) => {
-  if (cardIndex < 0 || cardIndex > 29) {
+  if (cardOrder < 0 || cardOrder > 29) {
     throw new Error("Invalid card index");
   }
   try {
@@ -268,13 +268,13 @@ export const flipCard = async (
     ) {
       throw new Error("It's not the user's turn");
     }
-    if (match.map[cardIndex].matched) {
+    if (match.map.filter((card) => card.order === cardOrder)[0].matched) {
       throw new Error("Card is already matched");
     }
     if (match.card1Flip === null) {
       const updatedMatch = await prisma.match.update({
         where: { id: matchId },
-        data: { card1Flip: cardIndex },
+        data: { card1Flip: cardOrder },
         include: { players: true, map: true },
       });
       const playerFilteredMatch = {
@@ -293,14 +293,18 @@ export const flipCard = async (
       };
       return playerFilteredMatch;
     } else if (match.card2Flip === null) {
+      if (match.card1Flip === cardOrder) {
+        throw new Error("Cannot flip the same card twice");
+      }
       const updatedMatch = await prisma.match.update({
         where: { id: matchId },
-        data: { card2Flip: cardIndex },
+        data: { card2Flip: cardOrder },
         include: { players: true, map: true },
       });
       if (
-        updatedMatch.map[match.card1Flip].value ===
-        updatedMatch.map[cardIndex].value
+        updatedMatch.map.filter((card) => card.order === match.card1Flip)[0]
+          .value ===
+        updatedMatch.map.filter((card) => card.order === cardOrder)[0].value
       ) {
         const moreUpdatedMatch = await prisma.match.update({
           where: { id: matchId },
@@ -309,8 +313,16 @@ export const flipCard = async (
               updateMany: {
                 where: {
                   OR: [
-                    { id: updatedMatch.map[match.card1Flip].id },
-                    { id: updatedMatch.map[cardIndex].id },
+                    {
+                      id: updatedMatch.map.filter(
+                        (card) => card.order === match.card1Flip
+                      )[0].id,
+                    },
+                    {
+                      id: updatedMatch.map.filter(
+                        (card) => card.order === cardOrder
+                      )[0].id,
+                    },
                   ],
                 },
                 data: { matched: true },
