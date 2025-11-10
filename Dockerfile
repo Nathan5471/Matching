@@ -13,7 +13,7 @@ COPY backend ./
 COPY --from=frontend /frontend/dist ./public
 COPY entrypoint.sh ./
 RUN chmod +x ./entrypoint.sh
-RUN apt-get update && aptget install -y netcat-openbsd
+RUN apt-get update && apt-get install -y netcat-openbsd
 RUN npx prisma generate
 RUN npm run build
 
