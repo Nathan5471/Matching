@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { IoEye, IoEyeOff } from "react-icons/io5";
 import { login } from "../utils/AuthAPIHandler";
 import { useAuth } from "../contexts/AuthContext";
@@ -9,7 +9,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
   const { getUser } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -17,7 +16,7 @@ export default function Login() {
     try {
       await login(username, password);
       await getUser();
-      navigate("/");
+      window.location.href = "/";
     } catch (error: unknown) {
       const errorMessage =
         typeof error === "object" &&
