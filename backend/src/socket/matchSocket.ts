@@ -72,7 +72,7 @@ const matchSocket = (io: Server) => {
           const { matchId, cardOrder } = data;
           const match = await flipCard(user, matchId, cardOrder);
           io.to(`match_${match.id}`).emit("cardFlipped", { match });
-          if (match.card2Flip !== null) {
+          if (match.card2Flip !== null && match.status === "ongoing") {
             setTimeout(async () => {
               const updatedMatch = await tickTurn(match.id);
               io.to(`match_${match.id}`).emit("turnTicked", {

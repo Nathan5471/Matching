@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import socket from "../socket";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -198,6 +198,34 @@ export default function Match() {
               )}
             </div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (match.status === "completed") {
+    return (
+      <div className="w-screen h-screen flex justify-center items-center bg-primary-a3 text-primary-a4">
+        <div className="bg-primary-a2 p-4 rounded-lg w-100 flex flex-col items-center">
+          <h2 className="text-2xl font-bold mb-4">
+            {match.winnerId === user?.id
+              ? "Congrats! You won!"
+              : "Better luck next time! You lost :("}
+          </h2>
+          <p className="flex flex-row gap-2">
+            Final Scores:{" "}
+            {match.players.map((player, index) => (
+              <span key={player.id}>
+                {player.username}: {match.scores[index]}
+              </span>
+            ))}
+          </p>
+          <Link
+            to="/"
+            className="mt-4 bg-primary-a1 hover:bg-primary-a0 transition-colors text-white font-bold p-2 rounded-lg w-full"
+          >
+            Go to Home
+          </Link>
         </div>
       </div>
     );
